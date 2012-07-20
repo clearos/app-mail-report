@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Mail recipients report controller.
+ * Mail senders report controller.
  *
  * @category   Apps
  * @package    Mail_Report
@@ -34,7 +34,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Mail recipients report controller.
+ * Mail senders report controller.
  *
  * @category   Apps
  * @package    Mail_Report
@@ -45,10 +45,10 @@
  * @link       http://www.clearfoundation.com/docs/developer/apps/mail_report/
  */
 
-class Recipients extends ClearOS_Controller
+class Senders extends ClearOS_Controller
 {
     /**
-     * Mail recipients controller.
+     * Mail senders controller.
      *
      * @return view
      */
@@ -65,11 +65,11 @@ class Recipients extends ClearOS_Controller
         //---------------
 
         try {
-            $data['data'] = $this->mail_report->get_recipients();
+            $data['data'] = $this->mail_report->get_senders();
 
-            $data['key'] = lang('mail_report_recipient');
+            $data['key'] = lang('mail_report_sender');
             $data['value'] = lang('mail_report_deliveries');
-            $data['title'] = lang('mail_report_recipients');
+            $data['title'] = lang('mail_report_senders');
         } catch (Exception $e) {
             $this->page->view_exception($e);
             return;
@@ -78,6 +78,6 @@ class Recipients extends ClearOS_Controller
         // Load views
         //-----------
 
-       $this->page->view_form('mail_report/key_value', $data, lang('mail_report_recipients'));
+       $this->page->view_form('mail_report/key_value', $data, lang('mail_report_senders'));
     }
 }

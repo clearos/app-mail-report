@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Mail recipients report controller.
+ * Mail report dashboard controller.
  *
  * @category   Apps
  * @package    Mail_Report
@@ -34,7 +34,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Mail recipients report controller.
+ * Mail report dashboard controller.
  *
  * @category   Apps
  * @package    Mail_Report
@@ -45,10 +45,10 @@
  * @link       http://www.clearfoundation.com/docs/developer/apps/mail_report/
  */
 
-class Recipients extends ClearOS_Controller
+class Dashboard  extends ClearOS_Controller
 {
     /**
-     * Mail recipients controller.
+     * Shutdown and restart default controller
      *
      * @return view
      */
@@ -61,15 +61,13 @@ class Recipients extends ClearOS_Controller
         $this->lang->load('mail_report');
         $this->load->library('mail_report/Mail_Report');
 
+        $body = '';
+
         // Load view data
         //---------------
 
         try {
-            $data['data'] = $this->mail_report->get_recipients();
-
-            $data['key'] = lang('mail_report_recipient');
-            $data['value'] = lang('mail_report_deliveries');
-            $data['title'] = lang('mail_report_recipients');
+            $data['summary'] = $this->mail_report->get_summary();
         } catch (Exception $e) {
             $this->page->view_exception($e);
             return;
@@ -78,6 +76,39 @@ class Recipients extends ClearOS_Controller
         // Load views
         //-----------
 
-       $this->page->view_form('mail_report/key_value', $data, lang('mail_report_recipients'));
+        $this->page->view_form('mail_report/dashboard', $data, lang('mail_report_mail_report_dashboard'));
+    }
+
+    /**
+     * Report data.
+     *
+     * @return JSON report data
+     */
+
+    function get_data()
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // Load dependencies
+        //------------------
+
+        $this->load->library('mail_report/Mail_Report');
+
+        // Load data
+        //----------
+
+        try {
+            $data = $this->mail_report->get_summary();
+        } catch (Exception $e) {
+            echo json_encode(array('code' => clearos_exception_code($e), 'errmsg' => clearos_exception_message($e)));
+        }
+
+        // Show data
+        //----------
+
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Expires: Fri, 01 Jan 2010 05:00:00 GMT');
+        header('Content-type: application/json');
+        echo json_encode($data);
     }
 }

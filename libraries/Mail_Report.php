@@ -92,6 +92,7 @@ class Mail_Report extends Engine
     ///////////////////////////////////////////////////////////////////////////////
 
     const PATH_REPORTS = '/var/clearos/mail_report';
+    const DEFAULT_RECORDS = 500;
 
     const TIME_YESTERDAY = 'yesterday';
     const TIME_TODAY = 'today';
@@ -109,6 +110,8 @@ class Mail_Report extends Engine
     const TYPE_DISCARDED = 'discarded';
     const TYPE_DELIVERY_FAILURES = 'delivery_failures';
     const TYPE_WARNING = 'warning';
+    const TYPE_SUMMARY = 'summary';
+    const TYPE_DAILY = 'daily';
 
     const TYPE_DEFERRED = 'deferred';
     const TYPE_DELIVERED = 'delivered';
@@ -121,10 +124,10 @@ class Mail_Report extends Engine
     // V A R I A B L E S
     ///////////////////////////////////////////////////////////////////////////////
 
-    protected $loaded = FALSE;
     protected $data = '';
-    protected $date_type;
-    protected $nodata = TRUE;
+    protected $date_type = '';
+    protected $loaded = FALSE;
+    protected $no_data = TRUE;
 
     ///////////////////////////////////////////////////////////////////////////////
     // M E T H O D S
@@ -134,7 +137,7 @@ class Mail_Report extends Engine
      * Mail report constructor.
      */
 
-    public function __construct($date_type)
+    public function __construct($date_type = self::TIME_MONTH)
     {
         clearos_profile(__METHOD__, __LINE__);
 
@@ -144,312 +147,205 @@ class Mail_Report extends Engine
     /**
      * Returns dashboard summary report.
      *
-     * @return string dashboard summary in HTML
+     * @return array summary data
      */
 
-    public function get_dashboard_summary()
+    public function get_summary()
     {
         clearos_profile(__METHOD__, __LINE__);
 
         if (!$this->loaded)
             $this->_get_data();
 
-        if ($this->nodata)
-            return;
+        if ($this->no_data)
+            return array();
 
-        $chartheader = array();
-        $chartheader[] = "";
-        $chartdata = array();
-        $chartdata[] = POSTFIX_LANG_MESSAGES;
-        $htmlrows = "";
-
-        foreach ($this->data["summary"] as $label => $value) {
-            $htmlrows .= "<tr><td class='chartlegendkey'>$label</td><td>$value</td></tr>";
-            if (($label == POSTFIX_LANG_RECEIVED) || ($label == POSTFIX_LANG_DELIVERED))
-                continue;
-            $chartheader[] = $label;
-            $chartdata[] = $value;
-        }
-
-        // HTML Output
-        //------------
-
-        $legend = WebChartLegend(REPORT_LANG_SUMMARY, $htmlrows);
-        WebTableOpen(POSTFIX_LANG_MESSAGES, "100%");
-        echo "
-          <tr>
-            <td valign='top'>$legend</td>
-            <td valign='top' align='center' width='350'>";
-            WebChart(
-                POSTFIX_LANG_MESSAGES,
-                "bar", 
-                350,
-                250,
-                array($chartheader, $chartdata),
-                0,
-                0,
-                0,
-                "/admin/postfixreport.php"
-            );
-        echo "
-            </td>
-          </tr>
-        ";
-        WebTableClose("100%");
+        return $this->data[self::TYPE_SUMMARY];
     }
 
     /**
-     * Returns monthly summary report.
+     * Returns daily summary over the last 30 days.
      *
-     * @return void
+     * @return array summary data
      */
 
-    public function get_full_report($notimplemented)
+    public function get_month_summary()
     {
         clearos_profile(__METHOD__, __LINE__);
 
         if (!$this->loaded)
             $this->_get_data();
 
-        if ($this->nodata)
-            return;
+        if ($this->no_data)
+            return array();
 
-        $htmlrows = "";
-        $chartheader = array();
-        $chartheader[] = "";
-        $chartdata_delivered = array();
-        $chartdata_delivered[] = POSTFIX_LANG_DELIVERED;
-        $chartdata_deferred = array();
-        $chartdata_deferred[] = POSTFIX_LANG_DEFERRED;
-        $chartdata_bounced = array();
-        $chartdata_bounced[] = POSTFIX_LANG_BOUNCED;
-        $chartdata_rejected = array();
-        $chartdata_rejected[] = POSTFIX_LANG_REJECTED;
-
-        foreach ($this->data["daily"] as $day => $keys) {
-            $htmlrows .= "<tr><td class='chartlegendkey'>$day</td>";
-            $chartheader[] = $day;
-            foreach ($keys as $key => $value) {
-                if (!$value)
-                    $value = 0;
-                else if ($key == POSTFIX_LANG_DELIVERED)
-                    $chartdata_delivered[] = $value;
-                else if ($key == POSTFIX_LANG_DEFERRED)
-                    $chartdata_deferred[] = $value;
-                else if ($key == POSTFIX_LANG_BOUNCED)
-                    $chartdata_bounced[] = $value;
-                else if ($key == POSTFIX_LANG_REJECTED)
-                    $chartdata_rejected[] = $value;
-
-                // Table output formatting
-                if (!$value)
-                    $value = "&#160;";
-                $htmlrows .= "<td>$value</td>";
-            }
-            $htmlrows .= "</tr>";
-        }
-
-        if (! $htmlrows)
-            return;
-
-        $htmlrows = "
-          <tr>
-            <td class='chartlegendtitle'>" . LOCALE_LANG_DATE . "</td>
-            <td class='chartlegendtitle'>" . POSTFIX_LANG_RECEIVED . "</td>
-            <td class='chartlegendtitle'>" . POSTFIX_LANG_DELIVERED . "</td>
-            <td class='chartlegendtitle'>" . POSTFIX_LANG_DEFERRED . "</td>
-            <td class='chartlegendtitle'>" . POSTFIX_LANG_BOUNCED . "</td>
-            <td class='chartlegendtitle'>" . POSTFIX_LANG_REJECTED . "</td>
-          </tr>
-        " . $htmlrows;
-        $textsummary = WebChartLegend(POSTFIX_LANG_REPORT_DAILY, $htmlrows);
-
-        WebTableOpen(POSTFIX_LANG_REPORT_DAILY, "100%");
-        echo "
-          <tr>
-            <td align='center'>";
-            WebChart(
-                POSTFIX_LANG_REPORT_DAILY, 
-                "stacked bar", 
-                550,
-                550, 
-                array ($chartheader, $chartdata_delivered, $chartdata_deferred, $chartdata_bounced, $chartdata_rejected),
-                array (CHART_COLOR_OK1, CHART_COLOR_OK2, CHART_COLOR_WARNING, CHART_COLOR_ALERT),
-                0,
-                FALSE
-            );
-        echo "
-            </td>
-          </tr>
-          <tr>
-            <td>$textsummary</td>
-          </tr>
-        ";
-        WebTableClose("100%");
+        return $this->data[self::TYPE_DAILY];
     }
-
-
 
     /**
      * Returns domain summary delivered report.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return domain summary sent data
      */
 
-    public function get_domain_summary_delivered($max_records)
+    public function get_domain_sent()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(POSTFIX_LANG_REPORT_DOMAIN_SUMMARY_DELIVERED, self::TYPE_DOMAIN_SUMMARY_DELIVERED, $max_records);
-    }
+        if (!$this->loaded)
+            $this->_get_data();
 
+        $data = array();
+
+        foreach ($this->data[self::TYPE_DOMAIN_SUMMARY_DELIVERED] as $line) {
+            $matches = array();
+
+            if (preg_match('/\s*(\d+)\s+(\d+)\s+(\d+)\s+([0-9\.]* \w)\s+([0-9\.]* \w)\s+(.*)\s*/', $line, $matches)) {
+                $data[$matches[6]]['count']= $matches[1];
+                $data[$matches[6]]['size']= $matches[2];
+                $data[$matches[6]]['defers']= $matches[3];
+                $data[$matches[6]]['average_time']= $matches[4];
+                $data[$matches[6]]['max_time']= $matches[5];
+            }
+        }
+
+        return $data;
+    }
 
     /**
      * Returns domain summary received report.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return domain summary received data
      */
 
-    public function get_domain_summary_received($max_records)
+    public function get_domain_received()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(POSTFIX_LANG_REPORT_DOMAIN_SUMMARY_RECEIVED, self::TYPE_DOMAIN_SUMMARY_RECEIVED, $max_records);
+        if (!$this->loaded)
+            $this->_get_data();
+
+        $data = array();
+
+        foreach ($this->data[self::TYPE_DOMAIN_SUMMARY_RECEIVED] as $line) {
+            $matches = array();
+
+            if (preg_match('/\s*(\d+)\s+(\d+)\s+(.*)\s*/', $line, $matches)) {
+                $data[$matches[3]]['count']= $matches[1];
+                $data[$matches[3]]['size']= $matches[2];
+            }
+        }
+
+        return $data;
     }
-
-
-    /**
-     * Returns recipients by size report.
-     *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
-     */
-
-    public function get_recipients_by_size($max_records)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->get_report_detail(POSTFIX_LANG_RECIPIENTS . " - " . POSTFIX_LANG_SIZE, self::TYPE_RECIPIENTS_BY_SIZE, $max_records);
-    }
-
 
     /**
      * Returns recipients report.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return array recipients with number of deliveries
      */
 
-    public function get_recipients($max_records = 10)
+    public function get_recipients()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(lang('mail_report_recipients'), self::TYPE_RECIPIENTS, $max_records);
+        return $this->_parse_simple_report(self::TYPE_RECIPIENTS);
     }
 
+    /**
+     * Returns recipients by size report.
+     *
+     * @return array recipients with mail size
+     */
+
+    public function get_recipients_by_size()
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        return $this->_parse_simple_report(self::TYPE_RECIPIENTS_BY_SIZE);
+    }
 
     /**
      * Returns senders report.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return array senders with number of deliveries
      */
 
-    public function get_senders($max_records)
+    public function get_senders()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(POSTFIX_LANG_SENDERS, self::TYPE_SENDERS, $max_records);
+        return $this->_parse_simple_report(self::TYPE_SENDERS);
     }
 
     /**
      * Returns senders by size report.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return array senders with mail size
      */
 
-    public function get_senders_by_size($max_records)
+    public function get_senders_by_size()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(POSTFIX_LANG_SENDERS . " - " . POSTFIX_LANG_SIZE, self::TYPE_SENDERS_BY_SIZE, $max_records);
+        return $this->_parse_simple_report(self::TYPE_SENDERS_BY_SIZE);
     }
 
     /**
      * Returns message bounce detail.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return array message bounce detail
      */
 
-    public function get_message_bounce_detail($max_records)
+    public function get_message_bounce_detail()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(POSTFIX_LANG_BOUNCED, self::TYPE_BOUNCED, $max_records);
+        return $this->_parse_simple_report(self::TYPE_BOUNCED);
     }
-
 
     /**
      * Returns message reject report.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return array message reject detail
      */
 
-    public function get_message_reject_detail($max_records)
+    public function get_message_reject_detail()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(POSTFIX_LANG_REJECTED, self::TYPE_REJECTED, $max_records);
+        return $this->_parse_simple_report(self::TYPE_REJECTED);
     }
-
 
     /**
      * Returns message discard detail report.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return array message discard detail
      */
 
-    public function get_message_discard_detail($max_records)
+    public function get_message_discard_detail()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(POSTFIX_LANG_DISCARDED, self::TYPE_DISCARDED, $max_records);
+        return $this->_parse_simple_report(self::TYPE_DISCARDED);
     }
-
 
     /**
      * Returns smtp delivery failures report.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return array delivery failures
      */
 
-    public function get_smtp_delivery_failures($max_records)
+    public function get_delivery_failures()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(POSTFIX_LANG_DELIVERY_FAILURES, self::TYPE_DELIVERY_FAILURES, $max_records);
+        // FIXME - verify with real data
+        return $this->_parse_simple_report(self::TYPE_DELIVERY_FAILURES);
     }
 
     /**
      * Returns the available report types.
-     *
      *
      * @return array list of report types
      */
@@ -470,21 +366,18 @@ class Mail_Report extends Engine
     /**
      * Returns warnings report.
      *
-     * @param int $max_records maximum number of records to return
-     *
-     * @return  void
+     * @return array mail warnings
      */
 
-    public function get_warnings($max_records)
+    public function get_warnings()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->get_report_detail(LOCALE_LANG_WARNING, self::TYPE_WARNING, $max_records);
+        return $this->_parse_simple_report(self::TYPE_WARNING);
     }
 
     /**
      * Returns state of data availability.
-     *
      *
      * @return boolean TRUE if data is available
      * @throws Engine_Exception
@@ -495,7 +388,7 @@ class Mail_Report extends Engine
         if (!$this->loaded)
             $this->_get_data();
 
-        if ($this->nodata)
+        if ($this->no_data)
             return FALSE;
         else
             return TRUE;
@@ -509,16 +402,17 @@ class Mail_Report extends Engine
      * Loads report data.
      *
      * @access private
-     *
      * @return void
      */
 
-    public function _get_data($date_type = 'today')
+    protected function _get_data()
     {
         clearos_profile(__METHOD__, __LINE__);
 
+// FIXME
+$this->date_type = 'month';
         try {
-            $file = new File(self::PATH_REPORTS . '/data-' . $date_type . '.out');
+            $file = new File(self::PATH_REPORTS . '/data-' . $this->date_type . '.out');
             $lines = $file->get_contents_as_array();
         } catch (File_Not_Found_Exception $e) {
             return;
@@ -528,48 +422,48 @@ class Mail_Report extends Engine
         $summary_data = array();   // Message statistics
 
         $linecount = 0;
-        $section = "messages";
+        $section = 'messages';
 
         foreach ($lines as $line) {
-            if (preg_match("/^message deferral detail/", $line)) {
+            if (preg_match('/^message deferral detail/', $line)) {
                 $section = self::TYPE_OTHER;
-            } else if (preg_match("/bytes received/", $line)) {
-                $section = "todo";
-            } else if (preg_match("/Per-Day Traffic Summary/", $line)) {
-                $section = "daily";
-            } else if (preg_match("/Per-Hour Traffic Daily Average/", $line)) {
-                $section = "todo";
-            } else if (preg_match("/Host\/Domain Summary: Message Delivery/", $line)) {
+            } else if (preg_match('/bytes received/', $line)) {
+                $section = 'todo';
+            } else if (preg_match('/Per-Day Traffic Summary/', $line)) {
+                $section = 'daily';
+            } else if (preg_match('/Per-Hour Traffic Daily Average/', $line)) {
+                $section = 'todo';
+            } else if (preg_match('/Host\/Domain Summary: Message Delivery/', $line)) {
                 $section = self::TYPE_DOMAIN_SUMMARY_DELIVERED;
                 continue;
-            } else if (preg_match("/Host\/Domain Summary: Messages Received/", $line)) {
+            } else if (preg_match('/Host\/Domain Summary: Messages Received/', $line)) {
                 $section = self::TYPE_DOMAIN_SUMMARY_RECEIVED;
                 continue;
-            } else if (preg_match("/Senders by message count/", $line)) {
+            } else if (preg_match('/Senders by message count/', $line)) {
                 $section = self::TYPE_SENDERS;
                 continue;
-            } else if (preg_match("/Recipients by message count/", $line)) {
+            } else if (preg_match('/Recipients by message count/', $line)) {
                 $section = self::TYPE_RECIPIENTS;
                 continue;
-            } else if (preg_match("/Senders by message size/", $line)) {
+            } else if (preg_match('/Senders by message size/', $line)) {
                 $section = self::TYPE_SENDERS_BY_SIZE;
                 continue;
-            } else if (preg_match("/Recipients by message size/", $line)) {
+            } else if (preg_match('/Recipients by message size/', $line)) {
                 $section = self::TYPE_RECIPIENTS_BY_SIZE;
                 continue;
-            } else if (preg_match("/message bounce detail/", $line)) {
+            } else if (preg_match('/message bounce detail/', $line)) {
                 $section = self::TYPE_BOUNCED;
                 continue;
-            } else if (preg_match("/message reject detail/", $line)) {
+            } else if (preg_match('/message reject detail/', $line)) {
                 $section = self::TYPE_REJECTED;
                 continue;
-            } else if (preg_match("/message discard detail/", $line)) {
+            } else if (preg_match('/message discard detail/', $line)) {
                 $section = self::TYPE_DISCARDED;
                 continue;
-            } else if (preg_match("/smtp delivery failures/", $line)) {
+            } else if (preg_match('/smtp delivery failures/', $line)) {
                 $section = self::TYPE_DELIVERY_FAILURES;
                 continue;
-            } else if (preg_match("/Warnings/", $line)) {
+            } else if (preg_match('/Warnings/', $line)) {
                 $section = self::TYPE_WARNING;
                 continue;
             }
@@ -577,14 +471,15 @@ class Mail_Report extends Engine
             // Daily report data
             //------------------
 
-            if ($section == "daily") {
-                $line = preg_replace("/\s+/", " ", $line);
-                $lineparts = explode(" ", $line);
-                if (!preg_match("/^\d+/", $lineparts[2]))
+            if ($section == 'daily') {
+                $line = preg_replace('/\s+/', ' ', $line);
+                $lineparts = explode(' ', $line);
+
+                if (!isset($lineparts[8]) || (!preg_match('/^\d+/', $lineparts[2])))
                     continue;
                 
-                $unixtime = strtotime($lineparts[0] . " " . $lineparts[1] . " " . $lineparts[2]);
-                $thedate = strftime("%b %e %Y", $unixtime);
+                $unixtime = strtotime($lineparts[0] . ' ' . $lineparts[1] . ' ' . $lineparts[2]);
+                $thedate = strftime('%b %e %Y', $unixtime);
 
                 $daily_data[$thedate][self::TYPE_RECEIVED] = $lineparts[4];
                 $daily_data[$thedate][self::TYPE_DELIVERED] = $lineparts[5];
@@ -592,104 +487,88 @@ class Mail_Report extends Engine
                 $daily_data[$thedate][self::TYPE_BOUNCED] = $lineparts[7];
                 $daily_data[$thedate][self::TYPE_REJECTED] = $lineparts[8];
 
-            // Grand totals
-            //-------------
+            } else if ($section == 'messages') {
 
-            } else if ($section == "messages") {
-                if (preg_match("/received/", $line)) {
-                    $summary_data[self::TYPE_RECEIVED] = trim(preg_replace("/received.*/", "", $line));
+                // Grand totals
+                //-------------
+
+                if (preg_match('/received/', $line)) {
+                    $summary_data[self::TYPE_RECEIVED] = (int) trim(preg_replace('/received.*/', '', $line));
                     if ($summary_data[self::TYPE_RECEIVED] != 0)
-                        $this->nodata = FALSE;
-                } else if (preg_match("/delivered/", $line)) {
-                    $summary_data[self::TYPE_DELIVERED] = trim(preg_replace("/delivered.*/", "", $line));
-                } else if (preg_match("/forwarded/", $line)) {
-                    $summary_data[self::TYPE_FORWARDED] = trim(preg_replace("/forwarded.*/", "", $line));
-                } else if (preg_match("/deferred/", $line)) {
-                    $summary_data[self::TYPE_DEFERRED] = trim(preg_replace("/deferred.*/", "", $line));
-                } else if (preg_match("/bounced/", $line)) {
-                    $summary_data[self::TYPE_BOUNCED] = trim(preg_replace("/bounced.*/", "", $line));
-                } else if (preg_match("/rejected/", $line)) {
-                    $summary_data[self::TYPE_REJECTED] = trim(preg_replace("/rejected.*/", "", $line));
-                } else if (preg_match("/reject warnings/", $line)) {
-                    $summary_data[self::TYPE_REJECT_WARNING] = trim(preg_replace("/reject warnings.*/", "", $line));
-                } else if (preg_match("/held/", $line)) {
-                    $summary_data[self::TYPE_HELD] = trim(preg_replace("/held.*/", "", $line));
-                } else if (preg_match("/discarded/", $line)) {
-                    $summary_data[self::TYPE_DISCARDED] = trim(preg_replace("/discarded.*/", "", $line));
+                        $this->no_data = FALSE;
+                } else if (preg_match('/delivered/', $line)) {
+                    $summary_data[self::TYPE_DELIVERED] = (int) trim(preg_replace('/delivered.*/', '', $line));
+                } else if (preg_match('/forwarded/', $line)) {
+                    $summary_data[self::TYPE_FORWARDED] = (int) trim(preg_replace('/forwarded.*/', '', $line));
+                } else if (preg_match('/deferred/', $line)) {
+                    $summary_data[self::TYPE_DEFERRED] = (int) trim(preg_replace('/deferred.*/', '', $line));
+                } else if (preg_match('/bounced/', $line)) {
+                    $summary_data[self::TYPE_BOUNCED] = (int) trim(preg_replace('/bounced.*/', '', $line));
+                } else if (preg_match('/rejected/', $line)) {
+                    $summary_data[self::TYPE_REJECTED] = (int) trim(preg_replace('/rejected.*/', '', $line));
+                } else if (preg_match('/reject warnings/', $line)) {
+                    $summary_data[self::TYPE_REJECT_WARNING] = (int) trim(preg_replace('/reject warnings.*/', '', $line));
+                } else if (preg_match('/held/', $line)) {
+                    $summary_data[self::TYPE_HELD] = (int) trim(preg_replace('/held.*/', '', $line));
+                } else if (preg_match('/discarded/', $line)) {
+                    $summary_data[self::TYPE_DISCARDED] = (int) trim(preg_replace('/discarded.*/', '', $line));
                 }
 
-            // Summary data
-            //-------------
 
-            } else if ($section != "todo") {
-                if (! preg_match("/-------/", $line)) {
+            } else if ($section != 'todo') {
+
+                // Summary data
+                //-------------
+
+                if (! preg_match('/-------/', $line)) {
                     $linecount++;
                     $data[$section][$linecount] = $line;
                 }
             }
         }
 
-        $data["daily"] = $daily_data;
-        $data["summary"] = $summary_data;
+        $data['daily'] = $daily_data;
+        $data['summary'] = $summary_data;
 
         $this->loaded = TRUE;
         $this->data = $data;
     }
 
+    ///////////////////////////////////////////////////////////////////////////////
+    // P R I V A T E  M E T H O D S
+    ///////////////////////////////////////////////////////////////////////////////
+
     /**
-     * Returns report detail.
+     * Parses simple key/value reports.
      *
-     * @param string  $title       report title
-     * @param string  $type        report type
-     * @param integer $max_records maximum number of records to return
+     * @param string  $type report type
+     * @param integer $max  maximum number of records
      *
      * @return void
      */
 
-    public function get_report_detail($title, $type, $max_records = 10)
+    protected function _parse_simple_report($type, $max = self::DEFAULT_RECORDS)
     {
         clearos_profile(__METHOD__, __LINE__);
 
         if (!$this->loaded)
             $this->_get_data();
 
-        $tablerows = "";
-        $lastsection = "";
-        $linecount = 0;
+        $count = 1;
+        $data = array();
 
-        foreach ($this->data[$type] as $ignore => $line) {
-            $line = preg_replace("/</", "&lt;", $line);
-            $line = preg_replace("/>/", "&gt;", $line);
-            if (strlen($line) > 80)
-                $line = substr($line, 0, 80);
+        foreach ($this->data[$type] as $line) {
 
-            if (preg_match("/^\s*$/", $line)) {
-                // Skip blank lines
-            } else if (preg_match("/^\s*[0-9]/", $line)) {
-                $tablerows .= "<tr>";
-                $tablerows .= "<td><pre style='margin: 0px'>$line</pre></td>";
-                $tablerows .= "</tr>";
-            } else {
-                // Table header
-                $tablerows .= "<tr>";
-                $tablerows .= "<td class='mytableheader'><pre style='margin: 0px'>$line</pre></td>";
-                $tablerows .= "</tr>";
+            $matches = array();
+            if (preg_match('/\s*(\d+)\s+(.*)\s*/', $line, $matches)) {
+                $data[$matches[2]] = (int) $matches[1];
+                $count++;
             }
-            
-            $linecount++;
-            if ($linecount > $max_records)
+
+            if ($count > $max)
                 break;
         }
 
-        // WebFormOpen($_SERVER['PHP_SELF'], "post");
-        // WebTableOpen($title, "100%");
-        if ($linecount <= 1)
-            $tablerows .= "<tr><td align='center'>" . lang('mail_report_nothing_to_report') . "</td></tr>\n";
-        // else if ($linecount > $max_records)
-        //   $tablereows .= "<tr><td align='center'>" . WebButtonShowFullReport($type) . "</td></tr>\n";
-        // WebTableClose("100%");
-        // WebFormClose();
-
-        return $tablerows;
+        return $data;
     }
 }

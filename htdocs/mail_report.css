@@ -1,0 +1,13 @@
+/* TODO: move to theme */
+.jqplot-axis {
+    font-size: 1em;
+    padding-left: 5px;
+}
+.jqplot-point-label {
+    font-size: 1em;
+}
+
+/* FIXME: move to theme */
+.theme-chart-wrapper {
+    margin-bottom: 10px;
+}
