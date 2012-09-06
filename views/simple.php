@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Simple key/value mail reports view.
+ * Mail report dashboard view.
  *
  * @category   ClearOS
- * @package    Mail_Report
+ * @package    Mail_report
  * @subpackage Views
  * @author     ClearFoundation <developer@clearfoundation.com>
  * @copyright  2012 ClearFoundation
@@ -28,71 +28,19 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.  
 //
 ///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
 // Load dependencies
 ///////////////////////////////////////////////////////////////////////////////
 
 $this->lang->load('mail_report');
-$this->lang->load('reports');
-
-///////////////////////////////////////////////////////////////////////////////
-// Settings
-///////////////////////////////////////////////////////////////////////////////
-
-echo form_open('mail_report/' . $type . '/settings');
-echo form_header(lang('reports_report_settings'));
-
-echo field_dropdown('range', $ranges, $range, lang('reports_date_range'));
-echo field_button_set($buttons);
-
-echo form_footer();
-echo form_close();
 
 ///////////////////////////////////////////////////////////////////////////////
 // Chart
 ///////////////////////////////////////////////////////////////////////////////
 
-echo chart_widget($title, "<div id='mail_report_$type'></div>");
-
-///////////////////////////////////////////////////////////////////////////////
-// Data table
-///////////////////////////////////////////////////////////////////////////////
-
-// Anchors
-//--------
-
-$anchors = array();
-
-// Headers
-//--------
-
-$headers = array(
-    $key,
-    $value
+$options['action'] = button_set(
+    array(anchor_custom('/app/mail_report/' . $type . '/full/', lang('reports_full_report')))
 );
 
-// Items
-//------
-
-foreach ($data as $key => $value) {
-    $item['details'] = array(
-        $key,
-        $value,
-    );
-
-    $items[] = $item;
-}
-
-// Data table
-//-----------
-
-echo summary_table(
-    lang('reports_report_data'),
-    $anchors,
-    $headers,
-    $items,
-    array(
-        'no_action' => TRUE,
-        'sort-default-col' => 1,
-        'sort-default-dir' => 'desc'
-    )
-);
+echo chart_widget($title, "<div id='mail_report_$type'></div>", $options);

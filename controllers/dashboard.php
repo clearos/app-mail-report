@@ -45,10 +45,10 @@
  * @link       http://www.clearfoundation.com/docs/developer/apps/mail_report/
  */
 
-class Dashboard  extends ClearOS_Controller
+class Dashboard extends ClearOS_Controller
 {
     /**
-     * Shutdown and restart default controller
+     * Default controller.
      *
      * @return view
      */
@@ -59,24 +59,11 @@ class Dashboard  extends ClearOS_Controller
         //------------------
 
         $this->lang->load('mail_report');
-        $this->load->library('mail_report/Mail_Report');
-
-        $body = '';
-
-        // Load view data
-        //---------------
-
-        try {
-            $data['summary'] = $this->mail_report->get_summary();
-        } catch (Exception $e) {
-            $this->page->view_exception($e);
-            return;
-        }
 
         // Load views
         //-----------
 
-        $this->page->view_form('mail_report/dashboard', $data, lang('mail_report_mail_report_dashboard'));
+        $this->page->view_form('mail_report/dashboard', array(), lang('mail_report_mail_report_dashboard'));
     }
 
     /**
@@ -98,7 +85,7 @@ class Dashboard  extends ClearOS_Controller
         //----------
 
         try {
-            $data = $this->mail_report->get_summary();
+            $data = $this->mail_report->get_summary('month');
         } catch (Exception $e) {
             echo json_encode(array('code' => clearos_exception_code($e), 'errmsg' => clearos_exception_message($e)));
         }

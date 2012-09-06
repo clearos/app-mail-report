@@ -6,6 +6,9 @@
 .jqplot-point-label {
     font-size: 1em;
 }
+.jqplot-base-canvas {
+    height: 800px;
+}
 
 /* FIXME: move to theme */
 .theme-chart-wrapper {

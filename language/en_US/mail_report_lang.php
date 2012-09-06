@@ -27,3 +27,4 @@ $lang['mail_report_warnings'] = 'Warnings';
 $lang['mail_report_warning'] = 'Warning';
 $lang['mail_report_failure'] = 'Failure';
 $lang['mail_report_failures'] = 'Failures';
+$lang['mail_report_month_report'] = 'Month Report';

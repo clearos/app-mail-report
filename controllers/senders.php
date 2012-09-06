@@ -48,17 +48,42 @@
 class Senders extends ClearOS_Controller
 {
     /**
-     * Mail senders controller.
+     * Default report.
      *
      * @return view
      */
 
     function index()
     {
+        $this->_report('simple');
+    }
+
+    /**
+     * Full report.
+     *
+     * @return view
+     */
+
+    function full()
+    {
+        $this->_report('full');
+    }
+
+    /**
+     * Generic report method.
+     *
+     * @param string $type report type
+     *
+     * @return view
+     */
+
+    function _report($type)
+    {
         // Load dependencies
         //------------------
 
         $this->lang->load('mail_report');
+        $this->lang->load('reports');
         $this->load->library('mail_report/Mail_Report');
 
         // Load view data
@@ -66,6 +91,13 @@ class Senders extends ClearOS_Controller
 
         try {
             $data['data'] = $this->mail_report->get_senders();
+
+            $data['type'] = 'senders';
+            $data['ranges'] = array(
+                'today' => lang('reports_today'),
+                'yesterday' => lang('reports_yesterday'),
+                'month' => lang('reports_last_thirty_days')
+            );
 
             $data['key'] = lang('mail_report_sender');
             $data['value'] = lang('mail_report_deliveries');
@@ -78,6 +110,44 @@ class Senders extends ClearOS_Controller
         // Load views
         //-----------
 
-       $this->page->view_form('mail_report/key_value', $data, lang('mail_report_senders'));
+        if ($type === 'simple')
+            $this->page->view_form('mail_report/simple', $data, lang('mail_report_senders'), $options);
+        else
+            $this->page->view_form('mail_report/key_value', $data, lang('mail_report_senders'), $options);
+    }
+
+    /**
+     * Report data.
+     *
+     * @param integer summary_index summarize data after this point
+     *
+     * @return JSON report data
+     */
+
+    function get_data($date_range, $summary_index = 10)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // Load dependencies
+        //------------------
+
+        $this->load->library('mail_report/Mail_Report');
+
+        // Load data
+        //----------
+
+        try {
+            $data = $this->mail_report->get_senders($date_range, $summary_index);
+        } catch (Exception $e) {
+            echo json_encode(array('code' => clearos_exception_code($e), 'errmsg' => clearos_exception_message($e)));
+        }
+
+        // Show data
+        //----------
+
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Expires: Fri, 01 Jan 2010 05:00:00 GMT');
+        header('Content-type: application/json');
+        echo json_encode($data);
     }
 }

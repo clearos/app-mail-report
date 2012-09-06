@@ -64,52 +64,127 @@ $(document).ready(function() {
     lang_held = '<?php echo lang("mail_report_held"); ?>';
     lang_discarded = '<?php echo lang("mail_report_discarded"); ?>';
 
+    // Events
+    //-------
+
+    $('#range').click(function(){
+        generate_report('senders', $('#range').val());
+    });
+
     // Main
     //-----
 
-    if ($('#mail_report_chart').length != 0) 
-        get_report();
+    if ($('#mail_report_dashboard').length != 0) 
+        generate_dashboard_report();
+
+    if ($('#mail_report_month').length != 0) 
+        generate_month_report();
+
+    if ($('#mail_report_senders').length != 0) 
+        generate_report('senders', 'today');
+
+    if ($('#mail_report_recipients').length != 0) 
+        generate_report('recipients', 'today');
 });
 
+/**
+ * Ajax call for standard report.
+ */
 
-function get_report() {
+function generate_report(type, range) {
+    $.ajax({
+        url: '/app/mail_report/' + type + '/get_data/' + range + '/10',
+        method: 'GET',
+        dataType: 'json',
+        success : function(payload) {
+            create_chart(type, payload);
+        },
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            window.setTimeout(generate_report, 3000);
+        }
+    });
+}
+
+/**
+ * Ajax call for dashboard report.
+ */
+
+function generate_dashboard_report() {
     $.ajax({
         url: '/app/mail_report/dashboard/get_data',
         method: 'GET',
         dataType: 'json',
         success : function(payload) {
-            graph_data(payload);
+            create_dashboard_chart(payload);
         },
         error: function (XMLHttpRequest, textStatus, errorThrown) {
-            window.setTimeout(get_report, 3000);
+            window.setTimeout(generate_dashboard_report, 3000);
         }
     });
 }
 
-function graph_data(payload) {
+/**
+ * Ajax call for month report.
+ */
 
-    var series = new Array();
-    var ticks = new Array();
+function generate_month_report() {
+    $.ajax({
+        url: '/app/mail_report/month/get_data',
+        method: 'GET',
+        dataType: 'json',
+        success : function(payload) {
+            create_month_chart(payload);
+        },
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            window.setTimeout(generate_month_report, 3000);
+        }
+    });
+}
 
-//    var ticks = [ lang_received, lang_delivered, lang_forwarded, lang_deferred, lang_bounced, lang_rejected, lang_held, lang_discarded ];
-//    var series = [ payload.received, payload.delivered, payload.forwarded, payload.deferred, payload.bounced, payload.rejected, payload.held, payload.discarded ];
-    var ticks = ['a', 'b', 'c', 'd'];
-    var series = [ 10, 11, 12, 13 ];
+/**
+ * Generates standard report.
+ */
 
+function create_chart(type, payload) {
     var data = new Array();
-    var data = [
-        [ lang_received, payload.received],
-        [ lang_delivered, payload.delivered],
-        [ lang_forwarded, payload.forwarded],
-        [ lang_deferred, payload.deferred],
-        [ lang_bounced, payload.bounced],
-        [ lang_rejected, payload.rejected],
-        [ lang_held, payload.held],
-        [ lang_discarded, payload.discarded],
-    ];
+    var chart_id = 'mail_report_' + type;
 
-    var data2 = new Array();
-    var data2 = [
+    for (var item_info in payload) {
+        key = item_info;
+        value = payload[key];
+        data.push([key, value]);
+    }
+
+    var chart = jQuery.jqplot (chart_id, [data],
+    {
+        legend: { show: true, location: 'e' },
+        seriesDefaults: {
+            renderer: jQuery.jqplot.PieRenderer,
+            shadow: true,
+            rendererOptions: {
+                showDataLabels: true,
+                sliceMargin: 8,
+                dataLabels: 'value'
+            }
+        },
+        grid: {
+            gridLineColor: 'transparent',
+            background: 'transparent',
+            borderColor: 'transparent',
+            shadow: false
+        }
+    });
+
+    chart.redraw();
+}
+
+/**
+ * Generates dashboard report.
+ */
+
+function create_dashboard_chart(payload) {
+
+    var data = [
         [ payload.received, lang_received ],
         [ payload.delivered, lang_delivered ],
         [ payload.forwarded, lang_forwarded ],
@@ -119,8 +194,8 @@ function graph_data(payload) {
         [ payload.held, lang_held ],
         [ payload.discarded, lang_discarded ],
     ];
-//    var chart = jQuery.jqplot ('mail_report_chart', [series],
-    var chart = jQuery.jqplot ('mail_report_chart', [data2],
+
+    var chart = jQuery.jqplot ('mail_report_dashboard', [data],
     {
         animate: !$.jqplot.use_excanvas,
         seriesColors: [ '#E1852E' ],
@@ -140,8 +215,48 @@ function graph_data(payload) {
         axesDefaults: {
             max: null
         },
-
         highlighter: { show: false }
+    });
+
+    chart.redraw();
+}
+
+/**
+ * Generates month report.
+ */
+
+function create_month_chart(payload) {
+
+    data = Array();
+    received = Array();
+    delivered = Array();
+    deferred = Array();
+    bounced = Array();
+
+    for (var day_info in payload) {
+        if (payload.hasOwnProperty(day_info)) {
+            received.push([payload[day_info].received, day_info]);
+            delivered.push([payload[day_info].delivered, day_info]);
+            deferred.push([payload[day_info].deferred, day_info]);
+            bounced.push([payload[day_info].bounced, day_info]);
+        }
+    }
+
+    var chart = jQuery.jqplot ('mail_report_month', [received, delivered, deferred, bounced],
+    {
+        animate: !$.jqplot.use_excanvas,
+        seriesDefaults: {
+            renderer: jQuery.jqplot.BarRenderer,
+            rendererOptions: {
+                barDirection: 'horizontal'
+            },
+            pointLabels: { show: true, location: 'e', edgeTolerance: -15 },
+        },
+        axes: {
+            yaxis: {
+                renderer: $.jqplot.CategoryAxisRenderer,
+            }
+        }
     });
 
     chart.redraw();

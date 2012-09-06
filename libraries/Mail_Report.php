@@ -92,7 +92,7 @@ class Mail_Report extends Engine
     ///////////////////////////////////////////////////////////////////////////////
 
     const PATH_REPORTS = '/var/clearos/mail_report';
-    const DEFAULT_RECORDS = 500;
+    const DEFAULT_MAX_RECORDS = 500;
 
     const TIME_YESTERDAY = 'yesterday';
     const TIME_TODAY = 'today';
@@ -125,7 +125,6 @@ class Mail_Report extends Engine
     ///////////////////////////////////////////////////////////////////////////////
 
     protected $data = '';
-    protected $date_type = '';
     protected $loaded = FALSE;
     protected $no_data = TRUE;
 
@@ -137,25 +136,25 @@ class Mail_Report extends Engine
      * Mail report constructor.
      */
 
-    public function __construct($date_type = self::TIME_MONTH)
+    public function __construct()
     {
         clearos_profile(__METHOD__, __LINE__);
-
-        $this->date_type = $date_type;
     }
 
     /**
      * Returns dashboard summary report.
      *
+     * @param string $range report time range
+     *
      * @return array summary data
      */
 
-    public function get_summary()
+    public function get_summary($range = self::TIME_TODAY)
     {
         clearos_profile(__METHOD__, __LINE__);
 
         if (!$this->loaded)
-            $this->_get_data();
+            $this->_get_data($range);
 
         if ($this->no_data)
             return array();
@@ -174,7 +173,7 @@ class Mail_Report extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (!$this->loaded)
-            $this->_get_data();
+            $this->_get_data(self::TIME_MONTH);
 
         if ($this->no_data)
             return array();
@@ -242,14 +241,17 @@ class Mail_Report extends Engine
     /**
      * Returns recipients report.
      *
+     * @param string  $range         report time range
+     * @param integer $summary_index summarize data after this point
+     *
      * @return array recipients with number of deliveries
      */
 
-    public function get_recipients()
+    public function get_recipients($range = self::TIME_TODAY, $summary_index = 0)
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        return $this->_parse_simple_report(self::TYPE_RECIPIENTS);
+        return $this->_parse_simple_report(self::TYPE_RECIPIENTS, $range, $summary_index);
     }
 
     /**
@@ -268,14 +270,17 @@ class Mail_Report extends Engine
     /**
      * Returns senders report.
      *
+     * @param string  $range         report time range
+     * @param integer $summary_index summarize data after this point
+     *
      * @return array senders with number of deliveries
      */
 
-    public function get_senders()
+    public function get_senders($range = self::TIME_TODAY, $summary_index = 0)
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        return $this->_parse_simple_report(self::TYPE_SENDERS);
+        return $this->_parse_simple_report(self::TYPE_SENDERS, $range, $summary_index);
     }
 
     /**
@@ -401,18 +406,18 @@ class Mail_Report extends Engine
     /**
      * Loads report data.
      *
+     * @param string $range time range
+     *
      * @access private
      * @return void
      */
 
-    protected function _get_data()
+    protected function _get_data($range = self::TIME_TODAY)
     {
         clearos_profile(__METHOD__, __LINE__);
 
-// FIXME
-$this->date_type = 'month';
         try {
-            $file = new File(self::PATH_REPORTS . '/data-' . $this->date_type . '.out');
+            $file = new File(self::PATH_REPORTS . '/data-' . $range . '.out');
             $lines = $file->get_contents_as_array();
         } catch (File_Not_Found_Exception $e) {
             return;
@@ -481,11 +486,11 @@ $this->date_type = 'month';
                 $unixtime = strtotime($lineparts[0] . ' ' . $lineparts[1] . ' ' . $lineparts[2]);
                 $thedate = strftime('%b %e %Y', $unixtime);
 
-                $daily_data[$thedate][self::TYPE_RECEIVED] = $lineparts[4];
-                $daily_data[$thedate][self::TYPE_DELIVERED] = $lineparts[5];
-                $daily_data[$thedate][self::TYPE_DEFERRED] = $lineparts[6];
-                $daily_data[$thedate][self::TYPE_BOUNCED] = $lineparts[7];
-                $daily_data[$thedate][self::TYPE_REJECTED] = $lineparts[8];
+                $daily_data[$thedate][self::TYPE_RECEIVED] = (int) trim($lineparts[4]);
+                $daily_data[$thedate][self::TYPE_DELIVERED] = (int) trim($lineparts[5]);
+                $daily_data[$thedate][self::TYPE_DEFERRED] = (int) trim($lineparts[6]);
+                $daily_data[$thedate][self::TYPE_BOUNCED] = (int) trim($lineparts[7]);
+                $daily_data[$thedate][self::TYPE_REJECTED] = (int) trim($lineparts[8]);
 
             } else if ($section == 'messages') {
 
@@ -534,40 +539,46 @@ $this->date_type = 'month';
         $this->data = $data;
     }
 
-    ///////////////////////////////////////////////////////////////////////////////
-    // P R I V A T E  M E T H O D S
-    ///////////////////////////////////////////////////////////////////////////////
-
     /**
      * Parses simple key/value reports.
      *
-     * @param string  $type report type
-     * @param integer $max  maximum number of records
+     * @param string  $type          report type
+     * @param integer $summary_index summarize data after this point
      *
      * @return void
      */
 
-    protected function _parse_simple_report($type, $max = self::DEFAULT_RECORDS)
+    protected function _parse_simple_report($type, $range, $summary_index = 10)
     {
         clearos_profile(__METHOD__, __LINE__);
 
         if (!$this->loaded)
-            $this->_get_data();
+            $this->_get_data($range);
 
         $count = 1;
+        $summary_total = 0;
+        $summary_required = FALSE;
         $data = array();
 
         foreach ($this->data[$type] as $line) {
-
             $matches = array();
-            if (preg_match('/\s*(\d+)\s+(.*)\s*/', $line, $matches)) {
-                $data[$matches[2]] = (int) $matches[1];
-                $count++;
-            }
 
-            if ($count > $max)
-                break;
+            if (preg_match('/\s*(\d+)\s+(.*)\s*/', $line, $matches)) {
+                $count++;
+
+                if (($summary_index != 0) && ($count > $summary_index)) {
+                    $summary_total += (int) ($matches[1]);
+                    $summary_required = TRUE;
+                } else if ($count >= self::DEFAULT_MAX_RECORDS) {
+                    break;
+                } else {
+                    $data[$matches[2]] = (int) $matches[1];
+                }
+            }
         }
+
+        if ($summary_required)
+            $data['other'] = $summary_total;
 
         return $data;
     }
