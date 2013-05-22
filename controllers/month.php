@@ -3,9 +3,9 @@
 /**
  * Month mail report controller.
  *
- * @category   Apps
- * @package    Mail_Report
- * @subpackage Controllers
+ * @category   apps
+ * @package    mail-report
+ * @subpackage controllers
  * @author     ClearFoundation <developer@clearfoundation.com>
  * @copyright  2012 ClearFoundation
  * @license    http://www.gnu.org/copyleft/gpl.html GNU General Public License version 3 or later
@@ -36,9 +36,9 @@
 /**
  * Month mail report controller.
  *
- * @category   Apps
- * @package    Mail_Report
- * @subpackage Controllers
+ * @category   apps
+ * @package    mail-report
+ * @subpackage controllers
  * @author     ClearFoundation <developer@clearfoundation.com>
  * @copyright  2012 ClearFoundation
  * @license    http://www.gnu.org/copyleft/gpl.html GNU General Public License version 3 or later

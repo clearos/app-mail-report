@@ -3,9 +3,9 @@
 /**
  * Mail report class.
  *
- * @category   Apps
- * @package    Mail_Report
- * @subpackage Libraries
+ * @category   apps
+ * @package    mail-report
+ * @subpackage libraries
  * @author     ClearFoundation <developer@clearfoundation.com>
  * @copyright  2012 ClearFoundation
  * @license    http://www.gnu.org/copyleft/lgpl.html GNU Lesser General Public License version 3 or later
@@ -76,9 +76,9 @@ clearos_load_library('base/File_Not_Found_Exception');
 /**
  * Mail report class.
  *
- * @category   Apps
- * @package    Mail_Report
- * @subpackage Libraries
+ * @category   apps
+ * @package    mail-report
+ * @subpackage libraries
  * @author     ClearFoundation <developer@clearfoundation.com>
  * @copyright  2012 ClearFoundation
  * @license    http://www.gnu.org/copyleft/lgpl.html GNU Lesser General Public License version 3 or later
