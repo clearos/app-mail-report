@@ -1,7 +1,7 @@
 
 Name: app-mail-report
 Epoch: 1
-Version: 1.1.1
+Version: 1.6.5
 Release: 1%{dist}
 Summary: Mail Report
 License: GPLv3
@@ -74,7 +74,6 @@ exit 0
 %files core
 %defattr(-,root,root)
 %exclude /usr/clearos/apps/mail_report/packaging
-%exclude /usr/clearos/apps/mail_report/tests
 %dir /usr/clearos/apps/mail_report
 /usr/clearos/apps/mail_report/deploy
 /usr/clearos/apps/mail_report/language
