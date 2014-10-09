@@ -43,4 +43,4 @@ $options['action'] = button_set(
     array(anchor_custom('/app/mail_report/' . $type . '/full/', lang('reports_full_report')))
 );
 
-echo chart_widget($title, "<div id='mail_report_$type'></div>", $options);
+echo chart_container($title, "mail_report_$type", $options);

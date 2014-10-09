@@ -39,4 +39,4 @@ $this->lang->load('mail_report');
 // Chart
 ///////////////////////////////////////////////////////////////////////////////
 
-echo chart_widget(lang('mail_report_month_report'), "<div id='mail_report_month' style='height: 2500px;'></div>");
+echo chart_container(lang('mail_report_month_report'), 'mail_report_month');
