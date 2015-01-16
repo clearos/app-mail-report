@@ -19,7 +19,7 @@ $app['description'] = lang('mail_report_app_description');
 
 $app['name'] = lang('mail_report_app_name');
 $app['category'] = lang('base_category_reports');
-$app['subcategory'] = lang('base_category_server');
+$app['subcategory'] = lang('base_subcategory_user_management');
 
 /////////////////////////////////////////////////////////////////////////////
 // Controllers
