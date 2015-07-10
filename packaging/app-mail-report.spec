@@ -1,7 +1,7 @@
 
 Name: app-mail-report
 Epoch: 1
-Version: 1.6.5
+Version: 2.1.6
 Release: 1%{dist}
 Summary: Mail Report
 License: GPLv3
