@@ -1,7 +1,7 @@
 
 Name: app-mail-report
 Epoch: 1
-Version: 2.1.6
+Version: 2.1.10
 Release: 1%{dist}
 Summary: Mail Report
 License: GPLv3
@@ -21,7 +21,6 @@ Group: ClearOS/Libraries
 Requires: app-base-core
 Requires: app-reports-core
 Requires: app-tasks-core
-Requires: postfix-perl-scripts
 
 %description core
 The Mail Report provides useful information on the state of mail flowing through your system.
@@ -36,7 +35,6 @@ This package provides the core API and libraries.
 mkdir -p -m 755 %{buildroot}/usr/clearos/apps/mail_report
 cp -r * %{buildroot}/usr/clearos/apps/mail_report/
 
-install -D -m 0644 packaging/app-mail-report.cron %{buildroot}/etc/cron.d/app-mail-report
 
 %post
 logger -p local6.notice -t installer 'app-mail-report - installing'
@@ -78,4 +76,3 @@ exit 0
 /usr/clearos/apps/mail_report/deploy
 /usr/clearos/apps/mail_report/language
 /usr/clearos/apps/mail_report/libraries
-/etc/cron.d/app-mail-report

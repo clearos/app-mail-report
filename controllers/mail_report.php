@@ -63,24 +63,6 @@ class Mail_Report extends ClearOS_Controller
         // Load views
         //-----------
 
-        $views = array(
-            'mail_report/senders',
-            'mail_report/recipients'
-        );
-/*
-        $views = array(
-            'mail_report/dashboard',
-            'mail_report/domain_received',
-            'mail_report/domain_sent',
-            'mail_report/recipients',
-            'mail_report/recipients_by_size',
-            'mail_report/senders',
-            'mail_report/senders_by_size',
-            'mail_report/warnings',
-            'mail_report/failures'
-        );
-*/
-
-        $this->page->view_forms($views, lang('mail_report_app_name'));
+        $this->page->view_form('mail_report/disabled', $data, lang('mail_report_app_name'));
     }
 }

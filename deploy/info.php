@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 $app['basename'] = 'mail_report';
-$app['version'] = '2.1.6';
+$app['version'] = '2.1.10';
 $app['release'] = '1';
 $app['vendor'] = 'ClearFoundation';
 $app['packager'] = 'ClearFoundation';
@@ -35,10 +35,11 @@ $app['controllers']['settings']['title'] = lang('base_settings');
 $app['core_requires'] = array(
     'app-reports-core',
     'app-tasks-core',
-    'postfix-perl-scripts',
 );
 
+/*
 $app['core_file_manifest'] = array(
     'app-mail-report.cron' => array('target' => '/etc/cron.d/app-mail-report')
 );
 
+*/
